@@ -1,0 +1,8 @@
+../Core/Src/ltc2959.c:11:13:Write_Reg	40	static
+../Core/Src/ltc2959.c:17:16:Read_Reg	40	static
+../Core/Src/ltc2959.c:28:13:Set_ADC_Mode	24	static
+../Core/Src/ltc2959.c:40:13:Set_GPIO_Configure	24	static
+../Core/Src/ltc2959.c:52:13:Set_Voltage_Input	24	static
+../Core/Src/ltc2959.c:64:13:Set_Coulomb_Counter_Deadband	24	static
+../Core/Src/ltc2959.c:79:13:Set_Do_Not_Count	24	static
+../Core/Src/ltc2959.c:89:6:LTC2959_Init	16	static
