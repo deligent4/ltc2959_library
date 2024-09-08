@@ -8,6 +8,8 @@
 #ifndef LTC2959_H_
 #define LTC2959_H_
 
+#include <stdbool.h>
+
 #define LTC2959_I2C_ADDR						(0b1100011 << 1)
 #ifndef LTC2959_I2C_PORT
 #define LTC2959_I2C_PORT       				hi2c2				// I2C handle. Change it to whatever
@@ -96,10 +98,10 @@
 /** @defgroup GPIO_CONFIG
   * @{
   */
-#define CTRL_GPIO_CONFIG_ALERT_MODE         (0b00 << 3)		// 00000000
-#define CTRL_GPIO_CONFIG_CHARGE_COMPLETE    (0b01 << 3)		// 00001000
-#define CTRL_GPIO_CONFIG_ANALOG_INPUT_LOW   (0b10 << 3)		// 00010000
-#define CTRL_GPIO_CONFIG_ANALOG_INPUT_HIGH  (0b11 << 3)		// 00011000
+#define CTRL_GPIO_CONFIG_ALERT_MODE         	(0b00 << 3)		// 00000000
+#define CTRL_GPIO_CONFIG_CHARGE_COMPLETE    	(0b01 << 3)		// 00001000
+#define CTRL_GPIO_CONFIG_ANALOG_INPUT_97mV   	(0b10 << 3)		// 00010000
+#define CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV  	(0b11 << 3)		// 00011000
 /**
   * @}
   */
@@ -151,6 +153,8 @@
 #define CC_CONFIG_RESERVED_20_DEFAULT 		(0b000 << 0) // Default value for reserved bits
 
 
+#define ACR_LSB 533							// ACR LSB Size 533nAh
+
 typedef struct{
 	uint8_t ADC_mode;			/*!< Specifies the ADC Mode.
                                   This parameter can be a value of @ref ADC_MODE */
@@ -160,15 +164,15 @@ typedef struct{
                                   This parameter can be a value of @ref VOLTAGE_INPUT */
 	uint8_t CC_deadband;		/*!< Sets the VSENSE threshold below which no charge is added to the ACR.
                                   This parameter can be a value of @ref COULOMB_COUNTER_DEADBAND */
+	float sense_resistor;		/* Input the Sense Resistor Value */
 }LTC2959_Config_t;
 
 
 void LTC2959_Init(LTC2959_Config_t *config_t);
 
-
-
-
-
+bool LTC2959_Chg_Over_Under(void);
+bool LTC2959_Chg_Alert_High(void);
+bool LTC2959_Chg_Alert_High(void);
 
 
 
