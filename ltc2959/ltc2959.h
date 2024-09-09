@@ -9,8 +9,9 @@
 #define LTC2959_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
-#define LTC2959_I2C_ADDR						(0b1100011 << 1)
+#define LTC2959_I2C_ADDR					(0b1100011 << 1)
 #ifndef LTC2959_I2C_PORT
 #define LTC2959_I2C_PORT       				hi2c2				// I2C handle. Change it to whatever
 #endif															//I2C port is connected to LTC2944

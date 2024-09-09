@@ -5,8 +5,9 @@
  *      Author: rahul
  */
 
+#include "../../ltc2959/ltc2959.h"
+
 #include "i2c.h"
-#include "ltc2959.h"
 
 static void Write_Reg(uint8_t reg, uint8_t value) {
 	uint8_t buf[1] = {value};
@@ -212,14 +213,14 @@ float LTC2959_Get_GPIO_ADC_Voltage(LTC2959_Config_t *config_t){
 	switch(config_t->GPIO_config){
 	case CTRL_GPIO_CONFIG_ANALOG_INPUT_97mV:
 		// ±97.5mV full-scale input, convert mV to V
-		adc_val = (97.5f * (value / 32768.0f)) / 1000.0f;  // result in Volts
+		adc_val = (97.5f * ((float)value / 32768.0f)) / 1000.0f;  // result in Volts
 		break;
 	case CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV:
 		// ±97.5mV full-scale input, convert mV to V
-		adc_val = (1560.0f * (value / 32768.0f)) / 1000.0f;  // result in Volts
+		adc_val = (1560.0f * ((float)value / 32768.0f)) / 1000.0f;  // result in Volts
 		break;
 	default:
-		 adc_val = -0.0f;	//
+		 adc_val = -0.0f;	//`
 		break;
 	}
 

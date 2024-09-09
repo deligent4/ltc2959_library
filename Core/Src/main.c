@@ -20,7 +20,8 @@
 #include "main.h"
 #include "i2c.h"
 #include "gpio.h"
-#include "ltc2959.h"
+
+#include "../../ltc2959/ltc2959.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -89,7 +90,7 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-
+  LTC2959_Init(ltc2959_config);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -145,7 +146,7 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void LTC2959_Device_Config(void){
 	ltc2959_config->ADC_mode = CTRL_ADC_MODE_CONT_ALT_V_I;
-	ltc2959_config->GPIO_config = CTRL_GPIO_CONFIG_ANALOG_INPUT_LOW;
+	ltc2959_config->GPIO_config = CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV;
 	ltc2959_config->voltage_input = CTRL_CONFIG_VOLTAGE_INPUT_SENSEN;
 	ltc2959_config->CC_deadband = CC_CONFIG_DEADBAND_20;
 }
