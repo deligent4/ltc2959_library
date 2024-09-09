@@ -9,10 +9,11 @@
 
 #include "i2c.h"
 
-static void Write_Reg(uint8_t reg, uint8_t value) {
+static HAL_StatusTypeDef Write_Reg(uint8_t reg, uint8_t value) {
 	uint8_t buf[1] = {value};
 
-	HAL_I2C_Mem_Write(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, reg, 1, &buf[0], 1, 10);
+	if(!HAL_I2C_Mem_Write(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, reg, 1, &buf[0], 1, 10));
+	return HAL_ERROR;
 }
 
 static uint8_t Read_Reg(uint8_t reg){
@@ -226,3 +227,46 @@ float LTC2959_Get_GPIO_ADC_Voltage(LTC2959_Config_t *config_t){
 
 	return adc_val;
 }
+
+
+
+/* ******************** // SET \\********************* */
+
+/*
+ * Param: value - This can be any value between 2000mV to 60000mV
+ * Specifies the Low voltage threshold.
+ */
+HAL_StatusTypeDef LTC2959_Set_Volt_Thrs_Low(uint16_t value){
+	if(value <= 2000)value = 2000;					// Value should not be less than 2V or 2000mV
+	else if (value >=60000) value = 60000;			// Value shpuld not be greater than 60V or 60000mV
+
+	uint16_t val = value * 65536 / 62600;
+	uint8_t msb = (val >> 8) & 0xFF;  				// High byte (MSB)
+	uint8_t lsb = val & 0xFF;         				// Low byte (LSB)
+
+	if(!Write_Reg(REG_VOLTAGE_THRESHOLD_LOW_MSB, msb))
+		return HAL_ERROR;
+	if(!Write_Reg(REG_VOLTAGE_THRESHOLD_LOW_LSB, lsb))
+		return HAL_ERROR;
+	return HAL_OK;
+}
+
+/*
+ * Param: value - This can be any value between 2000mV to 60000mV
+ * Specifies the High voltage threshold.
+ */
+HAL_StatusTypeDef LTC2959_Set_Volt_Thrs_High(uint16_t value){
+	if(value <= 2000)value = 2000;					// Value should not be less than 2V or 2000mV
+	else if (value >=60000) value = 60000;			// Value shpuld not be greater than 60V or 60000mV
+
+	uint16_t val = value * 65536 / 62600;			// Result = Vbat * 65536 / 62.2V Pg-13
+	uint8_t msb = (val >> 8) & 0xFF;  				// High byte (MSB)
+	uint8_t lsb = val & 0xFF;         				// Low byte (LSB)
+
+	if(!Write_Reg(REG_VOLTAGE_THRESHOLD_HIGH_MSB, msb))
+		return HAL_ERROR;
+	if(!Write_Reg(REG_VOLTAGE_THRESHOLD_HIGH_LSB, lsb))
+		return HAL_ERROR;
+	return HAL_OK;
+}
+
