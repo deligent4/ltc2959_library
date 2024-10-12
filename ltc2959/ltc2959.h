@@ -151,10 +151,10 @@
 
 // Bit positions and masks for Reserved bits (C[2:0])
 #define CC_CONFIG_RESERVED_20_MASK   		(0b111 << 0)
-#define CC_CONFIG_RESERVED_20_DEFAULT 		(0b000 << 0) // Default value for reserved bits
+#define CC_CONFIG_RESERVED_20_DEFAULT 		(0b000 << 0) 	// Default value for reserved bits
 
 
-#define ACR_LSB 533							// ACR LSB Size 533nAh
+#define ACR_LSB 							533				// ACR LSB Size 533nAh
 
 typedef struct{
 	uint8_t ADC_mode;			/*!< Specifies the ADC Mode.
@@ -174,8 +174,9 @@ void LTC2959_Init(LTC2959_Config_t *config_t);
 bool LTC2959_Chg_Over_Under(void);
 bool LTC2959_Chg_Alert_High(void);
 bool LTC2959_Chg_Alert_High(void);
+void Set_Do_Not_Count(bool dnc);
 
-
+extern LTC2959_Config_t ltc2959_config;
 
 
 #endif /* LTC2959_H_ */
