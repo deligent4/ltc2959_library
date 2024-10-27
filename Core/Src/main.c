@@ -18,13 +18,18 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "i2c.h"
+#include "usart.h"
 #include "gpio.h"
 
-#include "../../ltc2959/ltc2959.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "../../ltc2959/ltc2959.h"
+#include "../../ssd1306_oled_lib/inc/ssd1306.h"
+#include "../../ssd1306_oled_lib/inc/ssd1306_tests.h"
+#include <stdbool.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,7 +39,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define _DEBUG
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,22 +51,45 @@
 
 /* USER CODE BEGIN PV */
 //LTC2959_Config_t *ltc2959_config;
-LTC2959_Config_t ltc2959_config = {
-    .ADC_mode = CTRL_ADC_MODE_CONT_ALT_V_I,
-    .GPIO_config = CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV,
-    .voltage_input = CTRL_CONFIG_VOLTAGE_INPUT_SENSEN,
-    .CC_deadband = CC_CONFIG_DEADBAND_20
+LTC2959_Config_t ltc2959 = {
+    .ADC_mode		= 	CTRL_ADC_MODE_CONT_ALT_V_I,
+    .GPIO_config 	= 	CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV,
+    .voltage_input 	= 	CTRL_CONFIG_VOLTAGE_INPUT_SENSEN,
+    .CC_deadband 	= 	CC_CONFIG_DEADBAND_20,
+	.sense_resistor	= 	22					// 20milli ohms
 };
+
+uint32_t tick, prev_tick = 0, i2c_timeout = 10;
+uint32_t prev_print_delay = 0, print_delay = 1000;
+uint16_t blink_delay = 100;
+float voltage = 0, current = 0;
+float charge = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void LTC2959_Device_Config(void);
+
+void myOLED_char(uint16_t cursorX, uint16_t cursorY, char* data);
+void myOLED_float(uint16_t cursorX, uint16_t cursorY, float data);
+void myOLED_int(uint16_t cursorX, uint16_t cursorY, uint16_t data);
+void myOLED_int8(uint16_t cursorX, uint16_t cursorY, uint8_t data);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 1000);
+  return ch;
+}
 
 /* USER CODE END 0 */
 
@@ -94,22 +122,45 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C2_Init();
+  MX_I2C1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  LTC2959_Init(&ltc2959_config);
-//  LTC2959_Init(ltc2959_config);
+  printf("LTC2959 Begin\n\r");
+  while(HAL_I2C_IsDeviceReady(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, 100, 1000) != HAL_OK);	// wait for it to come alive
+  LTC2959_Init(&ltc2959);
+  HAL_Delay(1000);
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ltc2959_config.GPIO_config = CTRL_GPIO_CONFIG_ANALOG_INPUT_97mV;
-	  LTC2959_Init(&ltc2959_config);
+
+	  tick = HAL_GetTick();
+
+	  if(tick - prev_tick >= blink_delay){
+		  prev_tick = tick;
+		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  }
+	  if(tick - prev_print_delay >= print_delay){
+		  voltage = LTC2959_Get_Voltage();
+		  printf("LTC2959_Voltage = %.4f\n\r", voltage);
+		  current = LTC2959_Get_Current();
+		  printf("LTC2959_current = %.4f\n\r", current);
+		  charge = LTC2959_Get_Acc_Charge();
+		  printf("LTC2959_charge = %.4f\n\r\v", charge);
+
+		  prev_print_delay = tick;
+	  }
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
   }
   /* USER CODE END 3 */
 }
@@ -154,13 +205,39 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-//void LTC2959_Device_Config(void){
-//	ltc2959_config->ADC_mode = CTRL_ADC_MODE_CONT_ALT_V_I;
-//	ltc2959_config->GPIO_config = CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV;
-//	ltc2959_config->voltage_input = CTRL_CONFIG_VOLTAGE_INPUT_SENSEN;
-//	ltc2959_config->CC_deadband = CC_CONFIG_DEADBAND_20;
-//	LTC2959_Init(ltc2959_config);
-//}
+
+
+void myOLED_char(uint16_t cursorX, uint16_t cursorY, char* data){
+
+	ssd1306_SetCursor(cursorX, cursorY);
+	ssd1306_WriteString(data, Font_7x10, White);
+}
+
+void myOLED_float(uint16_t cursorX, uint16_t cursorY, float data){
+	char str_data[10];
+
+	sprintf(str_data, "%.3f", data);
+	ssd1306_SetCursor(cursorX, cursorY);
+	ssd1306_WriteString(str_data, Font_7x10, White);
+}
+
+void myOLED_int(uint16_t cursorX, uint16_t cursorY, uint16_t data){
+	char str_data[10];
+
+	sprintf(str_data, "%u", data);
+	ssd1306_SetCursor(cursorX, cursorY);
+	ssd1306_WriteString(str_data, Font_7x10, White);
+}
+
+void myOLED_int8(uint16_t cursorX, uint16_t cursorY, uint8_t data){
+	char str_data[10];
+
+	sprintf(str_data, "%d", data);
+	ssd1306_SetCursor(cursorX, cursorY);
+	ssd1306_WriteString(str_data, Font_7x10, White);
+}
+
+
 /* USER CODE END 4 */
 
 /**

@@ -9,6 +9,7 @@
 #include "../../ltc2959/ltc2959.h"
 
 #include "i2c.h"
+uint8_t equivalent_rsns = 0;
 
 /**
  * @brief  Writes a value to a specific register of the LTC2959 via I2C.
@@ -22,10 +23,10 @@
  * @retval HAL_StatusTypeDef  Returns HAL_OK on success, or HAL_ERROR if the write operation fails.
  */
 static HAL_StatusTypeDef Write_Reg(uint8_t reg, uint8_t value) {
-	uint8_t buf[1] = {value};
+	uint8_t buf[1] = {value}, status;
 
-	if(!HAL_I2C_Mem_Write(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, reg, 1, &buf[0], 1, 10));
-	return HAL_ERROR;
+	status = HAL_I2C_Mem_Write(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, reg, 1, &buf[0], 1, 100);
+	return status;
 }
 
 /**
@@ -40,7 +41,7 @@ static HAL_StatusTypeDef Write_Reg(uint8_t reg, uint8_t value) {
  */
 static uint8_t Read_Reg(uint8_t reg){
 	uint8_t value;
-	HAL_I2C_Mem_Read(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, reg, 1, &value, 1, 10);
+	HAL_I2C_Mem_Read(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, reg, 1, &value, 1, 100);
 	return value;
 }
 
@@ -56,11 +57,10 @@ static uint8_t Read_Reg(uint8_t reg){
  * @param  mode  This parameter can be a value of @ref ADC_MODE.
  * Specifies the ADC mode to be set.
  */
-static void Set_ADC_Mode(uint8_t mode){
+static HAL_StatusTypeDef Set_ADC_Mode(uint8_t mode){
     uint8_t value = Read_Reg(REG_ADC_CONTROL);
     MODIFY_REG(value, CTRL_ADC_MODE_MASK, mode);
-//    value = (value & ~CTRL_ADC_MODE_MASK) | mode;
-    Write_Reg(REG_ADC_CONTROL, value);
+    return Write_Reg(REG_ADC_CONTROL, value);
 }
 
 
@@ -72,11 +72,10 @@ static void Set_ADC_Mode(uint8_t mode){
  * @param  config  This parameter can be a value of @ref GPIO_CONFIG.
  * Specifies the GPIO mode to be set.
  */
-static void Set_GPIO_Configure(uint8_t config) {
+static HAL_StatusTypeDef Set_GPIO_Configure(uint8_t config) {
     uint8_t value = Read_Reg(REG_ADC_CONTROL);
     MODIFY_REG(value, CTRL_GPIO_CONFIG_MASK, config);
-//    value = (value & ~CTRL_GPIO_CONFIG_MASK) | config;
-    Write_Reg(REG_ADC_CONTROL, value);
+    return Write_Reg(REG_ADC_CONTROL, value);
 }
 
 
@@ -89,11 +88,10 @@ static void Set_GPIO_Configure(uint8_t config) {
  * @param  input  This parameter can be a value of @ref VOLTAGE_INPUT.
  * Specifies the voltage input pin (VDD or SENSEN).
  */
-static void Set_Voltage_Input(uint8_t input) {
+static HAL_StatusTypeDef Set_Voltage_Input(uint8_t input) {
     uint8_t value = Read_Reg(REG_ADC_CONTROL);
     MODIFY_REG(value, CTRL_CONFIG_VOLTAGE_INPUT_MASK, input);
-//    value = (value & ~CTRL_CONFIG_VOLTAGE_INPUT_MASK) | config;
-    Write_Reg(REG_ADC_CONTROL, value);
+    return Write_Reg(REG_ADC_CONTROL, value);
 }
 
 
@@ -105,14 +103,14 @@ static void Set_Voltage_Input(uint8_t input) {
  * @param  deadband  This parameter can be a value of @ref COULOMB_COUNTER_DEADBAND.
  * Specifies the deadband value for the Coulomb Counter.
  */
-static void Set_Coulomb_Counter_Deadband(uint8_t deadband){
+static HAL_StatusTypeDef Set_Coulomb_Counter_Deadband(uint8_t deadband){
 	uint8_t value = Read_Reg(REG_COULOMB_COUNTER_CONTROL);
     // Set the deadband
 	MODIFY_REG(value, CC_CONFIG_DEADBAND_MASK, deadband);
     // Ensure reserved bits are set to their default values
 	MODIFY_REG(value, CC_CONFIG_RESERVED_54_MASK, CC_CONFIG_RESERVED_54_DEFAULT);
 	MODIFY_REG(value, CC_CONFIG_RESERVED_20_MASK, CC_CONFIG_RESERVED_20_DEFAULT);
-	Write_Reg(REG_COULOMB_COUNTER_CONTROL, value);
+	return Write_Reg(REG_COULOMB_COUNTER_CONTROL, value);
 }
 
 
@@ -146,10 +144,34 @@ void Set_Do_Not_Count(bool dnc){
  * the initialization parameters for the LTC2959.
  */
 void LTC2959_Init(LTC2959_Config_t *config_t){
+#ifndef _DEBUG
 	Set_ADC_Mode(config_t->ADC_mode);
+	HAL_Delay(10);
 	Set_GPIO_Configure(config_t->GPIO_config);
-	Set_Voltage_Input(config_t->GPIO_config);
+	HAL_Delay(10);
+	Set_Voltage_Input(config_t->voltage_input);
+	HAL_Delay(10);
 	Set_Coulomb_Counter_Deadband(config_t->CC_deadband);
+	HAL_Delay(10);
+	equivalent_rsns = DEF_RSENSE / ltc2959.sense_resistor;
+#endif
+
+#ifdef _DEBUG
+	HAL_StatusTypeDef status;
+	status = Set_ADC_Mode(config_t->ADC_mode);
+	printf("Set_ADC_Mode = %d\n\r", status);
+	HAL_Delay(10);
+	status = Set_GPIO_Configure(config_t->GPIO_config);
+	printf("Set_GPIO_Configure = %d\n\r", status);
+	HAL_Delay(10);
+	status = Set_Voltage_Input(config_t->voltage_input);
+	printf("Set_Voltage_Input = %d\n\r", status);
+	HAL_Delay(10);
+	status = Set_Coulomb_Counter_Deadband(config_t->CC_deadband);
+	printf("Set_Coulomb_Counter_Deadband = %d\n\r", status);
+	HAL_Delay(10);
+#endif
+
 }
 
 
@@ -188,22 +210,25 @@ bool LTC2959_Chg_Alert_Low(void){
  */
 float LTC2959_Get_Acc_Charge(){
 	uint8_t buf[4];
-	uint32_t charge;
-	float total_charge;
+	uint32_t charge_raw;
+	float total_charge_mAh;
 
 	// Read the MSB and LSB of the voltage register
 	buf[0] = Read_Reg(REG_ACCUMULATED_CHARGE_MSB);
-	buf[1] = Read_Reg(REG_ACCUMULATED_CHARGE_15_8);
-	buf[2] = Read_Reg(REG_ACCUMULATED_CHARGE_23_16);
+	buf[1] = Read_Reg(REG_ACCUMULATED_CHARGE_23_16);
+	buf[2] = Read_Reg(REG_ACCUMULATED_CHARGE_15_8);
 	buf[3] = Read_Reg(REG_ACCUMULATED_CHARGE_LSB);
 
-	charge = 	((uint32_t)buf[0] << 24) |
-				((uint32_t)buf[1] << 16) |
-				((uint32_t)buf[2] << 8)	 |
-				(uint32_t)buf[3];
-	total_charge= charge * ACR_LSB * 1000000;	// Convert nAh to mAh
+	charge_raw = 	((uint32_t)buf[0] << 24) |
+					((uint32_t)buf[1] << 16) |
+					((uint32_t)buf[2] << 8)	 |
+					(uint32_t)buf[3];
 
-	return total_charge;
+	total_charge_mAh = (float)charge_raw - ACR_MID_SCALE;
+	total_charge_mAh = total_charge_mAh * ACR_LSB_mAh
+			* equivalent_rsns * RSENSE_CALIBRATION_FACTOR;	// Convert nAh to mAh
+
+	return total_charge_mAh;
 }
 
 
@@ -250,7 +275,7 @@ float LTC2959_Get_Current(){
 	value = (int16_t)((buf[0] << 8) | buf[1]);
 
 	// Calculate the current
-	current = ((97.5f / ltc2959_config.sense_resistor) * (value / 32768.0f));
+	current = ((97.5f / ltc2959.sense_resistor) * (value / 32768.0f));
 
 	return current;
 }
@@ -301,7 +326,7 @@ float LTC2959_Get_GPIO_ADC_Voltage(){
 	value = (int16_t)((buf[0] << 8) | buf[1]);
 
 	// Calculate the GPIO_Pin Voltage
-	switch(ltc2959_config.GPIO_config){
+	switch(ltc2959.GPIO_config){
 	case CTRL_GPIO_CONFIG_ANALOG_INPUT_97mV:
 		// ±97.5mV full-scale input, convert mV to V
 		adc_val = (97.5f * ((float)value / 32768.0f)) / 1000.0f;  // result in Volts
@@ -382,7 +407,7 @@ HAL_StatusTypeDef LTC2959_Set_Curr_Thrs_Low(int16_t value){
 	if(value <= 0)value = 0;						// Value should not be less than 0A
 	else if (value >=10000) value = 10000;			// Value shpuld not be greater than 10A or 10000mA
 
-	int16_t val = (value * 32768) / (ltc2959_config.sense_resistor * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
+	int16_t val = (value * 32768) / (ltc2959.sense_resistor * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
 	uint8_t msb = (val >> 8) & 0xFF;
 	uint8_t lsb = val & 0xFF;
 
@@ -406,7 +431,7 @@ HAL_StatusTypeDef LTC2959_Set_Curr_Thrs_High(int16_t value){
 	if(value <= 0)value = 0;						// Value should not be less than 0A
 	else if (value >=10000) value = 10000;			// Value shpuld not be greater than 10A or 10000mA
 
-	int16_t val = (value * 32768) / (ltc2959_config.sense_resistor * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
+	int16_t val = (value * 32768) / (ltc2959.sense_resistor * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
 	uint8_t msb = (val >> 8) & 0xFF;
 	uint8_t lsb = val & 0xFF;
 

@@ -1,0 +1,12 @@
+../ssd1306_oled_lib/src/ssd1306_tests.c:112:6:ssd1306_TestBorder	24	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:141:6:ssd1306_TestFonts1	16	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:174:6:ssd1306_TestFonts2	4	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:196:6:ssd1306_TestFPS	112	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:234:6:ssd1306_TestLine	16	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:242:6:ssd1306_TestRectangle	32	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:252:6:ssd1306_TestRectangleFill	16	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:260:6:ssd1306_TestCircle	16	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:275:6:ssd1306_TestArc	16	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:282:6:ssd1306_TestPolyline	32	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:299:6:ssd1306_TestDrawBitmap	16	static
+../ssd1306_oled_lib/src/ssd1306_tests.c:314:6:ssd1306_TestAll	8	static

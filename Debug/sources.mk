@@ -26,4 +26,5 @@ Core/Src \
 Core/Startup \
 Drivers/STM32F1xx_HAL_Driver/Src \
 ltc2959 \
+ssd1306_oled_lib/src \
 

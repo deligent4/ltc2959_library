@@ -7,14 +7,18 @@
 
 #ifndef LTC2959_H_
 #define LTC2959_H_
+#endif															//I2C port is connected to LTC2944
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "main.h"
+#include <stdio.h>
+
+//#define _DEBUG
 
 #define LTC2959_I2C_ADDR					(0b1100011 << 1)
 #ifndef LTC2959_I2C_PORT
 #define LTC2959_I2C_PORT       				hi2c2				// I2C handle. Change it to whatever
-#endif															//I2C port is connected to LTC2944
 
 // Register addresses
 #define REG_STATUS                         	0x00  // Status Register
@@ -86,7 +90,7 @@
 #define CTRL_ADC_MODE_SMART_SLEEP  			(0b001 << 5)	// 00100000
 #define CTRL_ADC_MODE_CONT_V       			(0b010 << 5)	// 01000000
 #define CTRL_ADC_MODE_CONT_I       			(0b011 << 5)	// 01100000
-#define CTRL_ADC_MODE_CONT_ALT_V_I      	(0b100 << 5)	// 10000000
+#define CTRL_ADC_MODE_CONT_ALT_V_I      	0b10000000 //(0b100 << 5)	// 10000000
 #define CTRL_ADC_MODE_SINGLE_SHOT_V_I_T		(0b101 << 5)	// 10100000
 #define CTRL_ADC_MODE_CONT_V_I_T   			(0b110 << 5)	// 11000000
 /**
@@ -154,8 +158,12 @@
 #define CC_CONFIG_RESERVED_20_DEFAULT 		(0b000 << 0) 	// Default value for reserved bits
 
 
-#define ACR_LSB 							533				// ACR LSB Size 533nAh
+#define ACR_LSB_nAh 						533				// ACR LSB Size 533nAh
+#define ACR_LSB_mAh    						(ACR_LSB_nAh / 1000000.0) // LSB in milliamp-hours
+#define ACR_MID_SCALE 						(float)(1UL << 31)		// 2^31
 
+#define DEF_RSENSE							50		// 50 milli-Ohms
+#define RSENSE_CALIBRATION_FACTOR			1.24
 typedef struct{
 	uint8_t ADC_mode;			/*!< Specifies the ADC Mode.
                                   This parameter can be a value of @ref ADC_MODE */
@@ -165,18 +173,21 @@ typedef struct{
                                   This parameter can be a value of @ref VOLTAGE_INPUT */
 	uint8_t CC_deadband;		/*!< Sets the VSENSE threshold below which no charge is added to the ACR.
                                   This parameter can be a value of @ref COULOMB_COUNTER_DEADBAND */
-	float sense_resistor;		/* Input the Sense Resistor Value */
+	uint8_t sense_resistor;		/* Input the Sense Resistor Value */
 }LTC2959_Config_t;
 
 
 void LTC2959_Init(LTC2959_Config_t *config_t);
 
+float LTC2959_Get_Acc_Charge();
+float LTC2959_Get_Voltage();
+float LTC2959_Get_Current();
 bool LTC2959_Chg_Over_Under(void);
 bool LTC2959_Chg_Alert_High(void);
 bool LTC2959_Chg_Alert_High(void);
 void Set_Do_Not_Count(bool dnc);
 
-extern LTC2959_Config_t ltc2959_config;
+extern LTC2959_Config_t ltc2959;
 
 
 #endif /* LTC2959_H_ */
