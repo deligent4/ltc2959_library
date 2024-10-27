@@ -1,2 +1,1 @@
-- ## Library not tested yet on physical hardware.
-- # TODO- TESTING
+- # TODO- validate functions other than the basic ones, get_current, get_voltage and get_charge.
