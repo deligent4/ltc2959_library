@@ -10,6 +10,8 @@
 
 #include "i2c.h"
 uint8_t equivalent_rsns = 0;
+float qlsb = QLSB;
+
 
 /**
  * @brief  Writes a value to a specific register of the LTC2959 via I2C.
@@ -107,7 +109,7 @@ static HAL_StatusTypeDef Set_Coulomb_Counter_Deadband(uint8_t deadband){
 	uint8_t value = Read_Reg(REG_COULOMB_COUNTER_CONTROL);
     // Set the deadband
 	MODIFY_REG(value, CC_CONFIG_DEADBAND_MASK, deadband);
-    // Ensure reserved bits are set to their default values
+	// Ensure reserved bits are set to their default values
 	MODIFY_REG(value, CC_CONFIG_RESERVED_54_MASK, CC_CONFIG_RESERVED_54_DEFAULT);
 	MODIFY_REG(value, CC_CONFIG_RESERVED_20_MASK, CC_CONFIG_RESERVED_20_DEFAULT);
 	return Write_Reg(REG_COULOMB_COUNTER_CONTROL, value);
@@ -153,7 +155,6 @@ void LTC2959_Init(LTC2959_Config_t *config_t){
 	HAL_Delay(10);
 	Set_Coulomb_Counter_Deadband(config_t->CC_deadband);
 	HAL_Delay(10);
-	equivalent_rsns = DEF_RSENSE / ltc2959.sense_resistor;
 #endif
 
 #ifdef _DEBUG
@@ -224,9 +225,7 @@ float LTC2959_Get_Acc_Charge(){
 					((uint32_t)buf[2] << 8)	 |
 					(uint32_t)buf[3];
 
-	total_charge_mAh = (float)charge_raw - ACR_MID_SCALE;
-	total_charge_mAh = total_charge_mAh * ACR_LSB_mAh
-			* equivalent_rsns * RSENSE_CALIBRATION_FACTOR;	// Convert nAh to mAh
+	total_charge_mAh = ((float)charge_raw - ACR_MID_SCALE) * QLSB ;
 
 	return total_charge_mAh;
 }
@@ -275,7 +274,9 @@ float LTC2959_Get_Current(){
 	value = (int16_t)((buf[0] << 8) | buf[1]);
 
 	// Calculate the current
-	current = ((97.5f / ltc2959.sense_resistor) * (value / 32768.0f));
+	current = ((97.5f / USER_RSENSE)
+			* (value / 32768.0f)
+			* RSENSE_CALIBRATION_FACTOR);
 
 	return current;
 }
@@ -407,7 +408,7 @@ HAL_StatusTypeDef LTC2959_Set_Curr_Thrs_Low(int16_t value){
 	if(value <= 0)value = 0;						// Value should not be less than 0A
 	else if (value >=10000) value = 10000;			// Value shpuld not be greater than 10A or 10000mA
 
-	int16_t val = (value * 32768) / (ltc2959.sense_resistor * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
+	int16_t val = (value * 32768) / (USER_RSENSE * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
 	uint8_t msb = (val >> 8) & 0xFF;
 	uint8_t lsb = val & 0xFF;
 
@@ -431,7 +432,7 @@ HAL_StatusTypeDef LTC2959_Set_Curr_Thrs_High(int16_t value){
 	if(value <= 0)value = 0;						// Value should not be less than 0A
 	else if (value >=10000) value = 10000;			// Value shpuld not be greater than 10A or 10000mA
 
-	int16_t val = (value * 32768) / (ltc2959.sense_resistor * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
+	int16_t val = (value * 32768) / (USER_RSENSE * 97.5);	// Result = (current * 32768) / (Rsns * 97.5)  Pg-14
 	uint8_t msb = (val >> 8) & 0xFF;
 	uint8_t lsb = val & 0xFF;
 

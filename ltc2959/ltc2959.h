@@ -20,6 +20,18 @@
 #ifndef LTC2959_I2C_PORT
 #define LTC2959_I2C_PORT       				hi2c2				// I2C handle. Change it to whatever
 
+// Input parameters
+#define DEFAULT_RSENSE						50		// 50 milli-Ohms (Do not Change)
+#define USER_RSENSE							20		// Input the sense resistor value in milli-ohms
+#define RSENSE_CALIBRATION_FACTOR			1
+#define ACR_CALIBARITION_FACTOR				1.23
+
+//
+#define ACR_LSB_nAh 						533				// ACR LSB Size 533nAh
+#define ACR_LSB_mAh    						(ACR_LSB_nAh / 1000000.0) // LSB in milliamp-hours
+#define ACR_MID_SCALE 						(float)(1UL << 31)		// 2^31
+#define QLSB								(ACR_LSB_mAh * (DEFAULT_RSENSE / USER_RSENSE) * ACR_CALIBARITION_FACTOR)
+
 // Register addresses
 #define REG_STATUS                         	0x00  // Status Register
 #define REG_ADC_CONTROL                    	0x01  // ADC Control Register
@@ -158,12 +170,8 @@
 #define CC_CONFIG_RESERVED_20_DEFAULT 		(0b000 << 0) 	// Default value for reserved bits
 
 
-#define ACR_LSB_nAh 						533				// ACR LSB Size 533nAh
-#define ACR_LSB_mAh    						(ACR_LSB_nAh / 1000000.0) // LSB in milliamp-hours
-#define ACR_MID_SCALE 						(float)(1UL << 31)		// 2^31
 
-#define DEF_RSENSE							50		// 50 milli-Ohms
-#define RSENSE_CALIBRATION_FACTOR			1.24
+
 typedef struct{
 	uint8_t ADC_mode;			/*!< Specifies the ADC Mode.
                                   This parameter can be a value of @ref ADC_MODE */
@@ -173,7 +181,6 @@ typedef struct{
                                   This parameter can be a value of @ref VOLTAGE_INPUT */
 	uint8_t CC_deadband;		/*!< Sets the VSENSE threshold below which no charge is added to the ACR.
                                   This parameter can be a value of @ref COULOMB_COUNTER_DEADBAND */
-	uint8_t sense_resistor;		/* Input the Sense Resistor Value */
 }LTC2959_Config_t;
 
 

@@ -55,8 +55,7 @@ LTC2959_Config_t ltc2959 = {
     .ADC_mode		= 	CTRL_ADC_MODE_CONT_ALT_V_I,
     .GPIO_config 	= 	CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV,
     .voltage_input 	= 	CTRL_CONFIG_VOLTAGE_INPUT_SENSEN,
-    .CC_deadband 	= 	CC_CONFIG_DEADBAND_20,
-	.sense_resistor	= 	22					// 20milli ohms
+    .CC_deadband 	= 	CC_CONFIG_DEADBAND_0,
 };
 
 uint32_t tick, prev_tick = 0, i2c_timeout = 10;
