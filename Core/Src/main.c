@@ -40,6 +40,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define _DEBUG
+//#define TEST_ACC
+#define TEST_TIME_MS		5000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,14 +57,16 @@ LTC2959_Config_t ltc2959 = {
     .ADC_mode		= 	CTRL_ADC_MODE_CONT_ALT_V_I,
     .GPIO_config 	= 	CTRL_GPIO_CONFIG_ANALOG_INPUT_1560mV,
     .voltage_input 	= 	CTRL_CONFIG_VOLTAGE_INPUT_SENSEN,
-    .CC_deadband 	= 	CC_CONFIG_DEADBAND_0,
+    .CC_deadband 	= 	CC_CONFIG_DEADBAND_20,
 };
 
 uint32_t tick, prev_tick = 0, i2c_timeout = 10;
 uint32_t prev_print_delay = 0, print_delay = 1000;
 uint16_t blink_delay = 100;
-float voltage = 0, current = 0;
-float charge = 0;
+uint32_t charge = 0;
+int32_t current = 0, voltage = 0;
+uint16_t temp = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -129,7 +133,7 @@ int main(void)
   printf("LTC2959 Begin\n\r");
   while(HAL_I2C_IsDeviceReady(&LTC2959_I2C_PORT, LTC2959_I2C_ADDR, 100, 1000) != HAL_OK);	// wait for it to come alive
   LTC2959_Init(&ltc2959);
-  HAL_Delay(1000);
+  HAL_Delay(10);
 
 
   /* USER CODE END 2 */
@@ -147,14 +151,21 @@ int main(void)
 	  }
 	  if(tick - prev_print_delay >= print_delay){
 		  voltage = LTC2959_Get_Voltage();
-		  printf("LTC2959_Voltage = %.4f\n\r", voltage);
+		  printf("LTC2959_Voltage = %ld\n\r", voltage);
 		  current = LTC2959_Get_Current();
-		  printf("LTC2959_current = %.4f\n\r", current);
+		  printf("LTC2959_current = %ld\n\r", current);
 		  charge = LTC2959_Get_Acc_Charge();
-		  printf("LTC2959_charge = %.4f\n\r\v", charge);
+		  printf("LTC2959_charge = %lu \n\r\v", charge);
 
 		  prev_print_delay = tick;
 	  }
+#ifdef TEST_ACC
+	  if(tick >= TEST_TIME_MS){
+//		  printf("tick %ld\n\r", tick);
+		  LTC2959_Set_Do_Not_Count(false); 	// Stop the counting after
+		  HAL_Delay(1000);
+	  }
+#endif
 
     /* USER CODE END WHILE */
 

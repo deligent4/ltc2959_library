@@ -21,17 +21,20 @@
 #define LTC2959_I2C_PORT       				hi2c2				// I2C handle. Change it to whatever
 
 // Input parameters
-#define DEFAULT_RSENSE						50		// 50 milli-Ohms (Do not Change)
-#define USER_RSENSE							20		// Input the sense resistor value in milli-ohms
-#define RSENSE_CALIBRATION_FACTOR			1
-#define ACR_CALIBARITION_FACTOR				1.23
+#define DEFAULT_RSENSE						50.0		// 50 milli-Ohms (Do not Change)
+#define USER_RSENSE							3.0		// Input the sense resistor value in milli-ohms
+#define EFFECTIVE_RSENSE					(float)(DEFAULT_RSENSE / USER_RSENSE)
+#define RSENSE_CALIBRATION_FACTOR			1.0
+#define ACR_CALIBARITION_FACTOR				1.0
 
 //
-#define ACR_LSB_nAh 						533				// ACR LSB Size 533nAh
-#define ACR_LSB_mAh    						(ACR_LSB_nAh / 1000000.0) // LSB in milliamp-hours
-#define ACR_MID_SCALE 						(float)(1UL << 31)		// 2^31
-#define QLSB								(ACR_LSB_mAh * (DEFAULT_RSENSE / USER_RSENSE) * ACR_CALIBARITION_FACTOR)
+#define ACR_LSB_nAh 						533.0				// ACR LSB Size 533nAh
+#define ACR_MID_SCALE 						(1UL << 31)		// 2^31
+#define QLSB								(ACR_LSB_nAh * EFFECTIVE_RSENSE * ACR_CALIBARITION_FACTOR)
 
+
+#define CURRENT_MULTIPLIER					((97500000 * RSENSE_CALIBRATION_FACTOR) / (USER_RSENSE * 32768))
+#define VOLTAGE_MULTIPLIER					(62700000 / 65536)
 // Register addresses
 #define REG_STATUS                         	0x00  // Status Register
 #define REG_ADC_CONTROL                    	0x01  // ADC Control Register
@@ -151,7 +154,7 @@
 
 
 // Bit position and mask for Do Not Count (C[3])
-#define CC_CONFIG_DO_NOT_COUNT_MASK  		(0b1 << 3)		// 00000000 (Do Not Count) Stops coulomb counting
+#define CC_CONFIG_DO_NOT_COUNT_MASK  		(0b1 << 3)		// 00001000 (Do Not Count) Stops coulomb counting
 /** @defgroup COULOMB_COUNTER_ON_OFF
   * @{
   */
@@ -186,13 +189,16 @@ typedef struct{
 
 void LTC2959_Init(LTC2959_Config_t *config_t);
 
-float LTC2959_Get_Acc_Charge();
-float LTC2959_Get_Voltage();
-float LTC2959_Get_Current();
+uint32_t LTC2959_Get_Acc_Charge();
+uint32_t LTC2959_Get_Voltage();
+int32_t LTC2959_Get_Current();
+uint16_t LTC2959_Get_Temperature();
+
+
 bool LTC2959_Chg_Over_Under(void);
 bool LTC2959_Chg_Alert_High(void);
 bool LTC2959_Chg_Alert_High(void);
-void Set_Do_Not_Count(bool dnc);
+void LTC2959_Set_Do_Not_Count(bool dnc);
 
 extern LTC2959_Config_t ltc2959;
 

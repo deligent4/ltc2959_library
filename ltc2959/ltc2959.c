@@ -9,9 +9,7 @@
 #include "../../ltc2959/ltc2959.h"
 
 #include "i2c.h"
-uint8_t equivalent_rsns = 0;
-float qlsb = QLSB;
-
+#include "stdbool.h"
 
 /**
  * @brief  Writes a value to a specific register of the LTC2959 via I2C.
@@ -122,12 +120,19 @@ static HAL_StatusTypeDef Set_Coulomb_Counter_Deadband(uint8_t deadband){
  * This function sets the "Do Not Count" bit for the Coulomb Counter, which can
  * either enable or stop counting Coulombs, depending on the input value.
  *
- * @param  dnc  This parameter can be a value of @ref COULOMB_COUNTER_ON_OFF.
- * Controls whether the Coulomb Counter is enabled (0)(true) default or disabled (1) false.
+ * @param  dnc  This parameter can be true(1) or false(0).
+ * Controls whether the Coulomb Counter is enabled disabled.
+ * By default counting is enabled on power-on.
+ * Set dnc to "true" to turn off Counting
  */
-void Set_Do_Not_Count(bool dnc){
+void LTC2959_Set_Do_Not_Count(bool dnc){
 	uint8_t value = Read_Reg(REG_COULOMB_COUNTER_CONTROL);
-	MODIFY_REG(value, CC_CONFIG_DO_NOT_COUNT_MASK, !dnc);
+//	printf("test reg %x\n\r\v", value);
+	if(dnc){
+		MODIFY_REG(value, CC_CONFIG_DO_NOT_COUNT_MASK, CC_CONFIG_DO_NOT_COUNT_MASK);
+	}else {
+		MODIFY_REG(value, CC_CONFIG_DO_NOT_COUNT_MASK, 0b0);
+	}
 	// Ensure reserved bits are set to their default values
 	MODIFY_REG(value, CC_CONFIG_RESERVED_54_MASK, CC_CONFIG_RESERVED_54_DEFAULT);
 	MODIFY_REG(value, CC_CONFIG_RESERVED_20_MASK, CC_CONFIG_RESERVED_20_DEFAULT);
@@ -207,12 +212,12 @@ bool LTC2959_Chg_Alert_Low(void){
  * This function reads the accumulated charge register of the LTC2959 and
  * returns the total accumulated charge in mAh (milli-Amp Hour).
  *
- * @return Total accumulated charge in mAh.
+ * @return Total accumulated charge in micro-Amp-hour (uAh).
  */
-float LTC2959_Get_Acc_Charge(){
+uint32_t LTC2959_Get_Acc_Charge(){
 	uint8_t buf[4];
 	uint32_t charge_raw;
-	float total_charge_mAh;
+//	float total_charge_mAh;
 
 	// Read the MSB and LSB of the voltage register
 	buf[0] = Read_Reg(REG_ACCUMULATED_CHARGE_MSB);
@@ -225,7 +230,7 @@ float LTC2959_Get_Acc_Charge(){
 					((uint32_t)buf[2] << 8)	 |
 					(uint32_t)buf[3];
 
-	total_charge_mAh = ((float)charge_raw - ACR_MID_SCALE) * QLSB ;
+	uint32_t total_charge_mAh = ((ACR_MID_SCALE - charge_raw) * QLSB) / 1000;
 
 	return total_charge_mAh;
 }
@@ -236,19 +241,19 @@ float LTC2959_Get_Acc_Charge(){
  *
  * This function reads the voltage register and returns the voltage value in volts.
  * VDD or SENSEN (depending on the ADC control settings).
- * @return Voltage in volts.
+ * @return Voltage in milli-volts.
  */
-float LTC2959_Get_Voltage(){
+uint32_t LTC2959_Get_Voltage(){
 	uint8_t buf[2];
 	uint16_t value;
-	float voltage;
+	uint32_t voltage;
 
 	// Read the MSB and LSB of the voltage register
 	buf[0] = Read_Reg(REG_VOLTAGE_MSB);
 	buf[1] = Read_Reg(REG_VOLTAGE_LSB);
 	value = (buf[0] << 8) | buf[1];
-	voltage = 62.6 * ((float)value / 65536.0);
-
+//	voltage = 62.6 * ((float)value / 65536.0);
+	voltage = value * VOLTAGE_MULTIPLIER / 1000;
 	return voltage;
 }
 
@@ -259,12 +264,11 @@ float LTC2959_Get_Voltage(){
  * This function reads the current register and calculates the
  * current using the sense resistor value.
  *
- * @return Current in amperes.
+ * @return Current in milli-amperes.
  */
-float LTC2959_Get_Current(){
+int32_t LTC2959_Get_Current(){
 	uint8_t buf[2];
 	int16_t value;
-	float current;
 
 	// Read the MSB and LSB of the current register
 	buf[0] = Read_Reg(REG_CURRENT_MSB);
@@ -273,16 +277,15 @@ float LTC2959_Get_Current(){
 	// Combine MSB and LSB into 16-bit signed value
 	value = (int16_t)((buf[0] << 8) | buf[1]);
 
-	// Calculate the current
-	current = ((97.5f / USER_RSENSE)
-			* (value / 32768.0f)
-			* RSENSE_CALIBRATION_FACTOR);
+	int32_t current_uA = value * CURRENT_MULTIPLIER / 1000;
 
-	return current;
+	return current_uA;
 }
 
 
 /**
+ * TODO testing
+ *
  * @brief  Get the temperature reading from LTC2959.
  *
  * This function reads the temperature register and returns the
@@ -290,17 +293,17 @@ float LTC2959_Get_Current(){
  *
  * @return Temperature in degrees Celsius.
  */
-float LTC2959_Get_Temperature(){
+uint16_t LTC2959_Get_Temperature(){
 	uint8_t buf[2];
 	uint16_t value;
-	float temp;
+	uint16_t temp;
 
 	// Read the MSB and LSB of the temperature register
 	buf[0] = Read_Reg(REG_TEMPERATURE_MSB);
 	buf[1] = Read_Reg(REG_TEMPERATURE_LSB);
 
-	value = (int16_t)((buf[0] << 8) | buf[1]);
-	temp = (825.0 * ((float)value / 65536.0)) - 273.15;
+	value = ((buf[0] << 8) | buf[1]);
+	temp = (825 * (value / 65536)) - 273.15;
 
 	return temp;
 }
